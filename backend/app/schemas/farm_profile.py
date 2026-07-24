@@ -2,9 +2,17 @@
 
 from typing import Literal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 
 FarmSizeUnit = Literal["acre", "bigha", "katha", "decimal", "shotangsho"]
+
+# Swagger/OpenAPI "Try it out" pre-fills every string field with the literal
+# word "string" and every number field with 0. Farmers obviously never enter
+# these, but nothing rejects them either — they pass isinstance/not-None
+# checks and get treated as real, complete data. Silently converting these
+# to None here means the API's own placeholder defaults can never be
+# mistaken for a farmer-provided value downstream.
+_PLACEHOLDER_STRINGS = {"", "string"}
 
 
 class FarmProfileIn(BaseModel):
@@ -22,6 +30,19 @@ class FarmProfileIn(BaseModel):
     water_availability: str | None = None
     budget: float | None = None
     target_season: str | None = None
+
+    @field_validator("location", "soil_type", "water_availability", "target_season")
+    @classmethod
+    def _reject_placeholder_text(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        cleaned = value.strip()
+        return None if cleaned.lower() in _PLACEHOLDER_STRINGS else cleaned
+
+    @field_validator("farm_size", "budget")
+    @classmethod
+    def _reject_non_positive(cls, value: float | None) -> float | None:
+        return None if value is None or value <= 0 else value
 
 
 class FarmProfileOut(BaseModel):

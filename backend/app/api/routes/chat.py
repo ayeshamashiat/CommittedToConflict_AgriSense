@@ -4,7 +4,6 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session as DBSession
 
 from app.api.deps import get_agent, get_db
-from app.api.routes._fallback_orchestrator import run_fallback_turn
 from app.db.repositories.farm_repo import get_or_create_profile, missing_fields, update_profile
 from app.db.repositories.message_repo import add_message
 from app.db.repositories.session_repo import get_or_create_session
@@ -24,10 +23,15 @@ def chat(payload: ChatRequest, db: DBSession = Depends(get_db), agent=Depends(ge
     profile = get_or_create_profile(db, session.id)
 
     if agent is not None:
-        # Member A's real orchestrator (memory + planner + tool executor + explainer).
         result = agent.handle_turn(db=db, session_id=session.id, message=payload.message, profile=profile)
     else:
-        result = run_fallback_turn(db, session.id, profile)
+        # AgentOrchestrator failed to construct (e.g. unexpected environment issue) —
+        # this should not happen in practice since it has no hard dependency on an
+        # LLM key, but we never want /chat to 500 on a farmer.
+        result = {
+            "reply": "Sorry, the agent is temporarily unavailable. Please try again shortly.",
+            "missing_fields": missing_fields(profile),
+        }
 
     add_message(db, session.id, role="assistant", content=result["reply"])
 
