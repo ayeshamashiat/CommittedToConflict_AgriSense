@@ -11,6 +11,8 @@ from sqlalchemy.orm import Session as DBSession
 
 from app.agent import executor, planner
 from app.agent import explainer as explainer_module
+from app.agent.proactive import generate_alerts
+from app.agent.season_calendar import compute_stage_dates
 from app.db.models import FarmProfile
 from app.db.repositories.crop_reference_repo import get_by_name
 from app.db.repositories.plan_repo import save_financial_projection, save_season_plan
@@ -93,10 +95,51 @@ class AgentOrchestrator:
         recommendations, season_plan, reply = explainer_module.compose(
             self.llm, profile, weather_output, per_crop, message
         )
-        save_season_plan(db, session_id, season_plan.crop_name, season_plan.model_dump(exclude={"crop_name"}))
 
         top_crop = candidate_crops[0]
+        top_crop_row = get_by_name(db, top_crop) or DEFAULT_CROP
         financial_summary = per_crop[top_crop]["finance"]
+
+        # Tier 1: dated calendar + proactive weather-triggered adjustment.
+        stage_dates = compute_stage_dates(top_crop_row.duration_days)
+        alerts, stage_dates = generate_alerts(weather_output, stage_dates, top_crop_row.water_need)
+        season_plan_dict = season_plan.model_dump()
+        season_plan_dict.update(stage_dates)
+
+        save_season_plan(db, session_id, season_plan.crop_name, season_plan.model_dump(exclude={"crop_name"}))
+
+        # Tier 1: fertilizer/irrigation scheduler + pest risk for the top crop.
+        fert_record = executor.call_tool(
+            db, session_id, "fertilizer_scheduler", {"crop": top_crop, "farm_size": profile.farm_size}
+        )
+        tool_calls.append(fert_record)
+
+        irrigation_record = executor.call_tool(
+            db,
+            session_id,
+            "irrigation_scheduler",
+            {
+                "crop": top_crop,
+                "farm_size": profile.farm_size,
+                "water_availability": profile.water_availability,
+            },
+        )
+        tool_calls.append(irrigation_record)
+
+        pest_record = None
+        if weather_output:
+            pest_record = executor.call_tool(
+                db,
+                session_id,
+                "pest_risk_assessor",
+                {
+                    "crop": top_crop,
+                    "temperature": weather_output["temperature"],
+                    "humidity": weather_output["humidity"],
+                    "rainfall": weather_output["rainfall"],
+                },
+            )
+            tool_calls.append(pest_record)
 
         trace = [
             ToolTraceEntry(tool_name=r.tool_name, input=r.input, output=r.output, status=r.status)
@@ -107,8 +150,12 @@ class AgentOrchestrator:
             "reply": reply,
             "missing_fields": [],
             "recommendations": recommendations,
-            "season_plan": season_plan,
+            "season_plan": season_plan_dict,
             "financial_summary": financial_summary,
             "weather": weather_output,
             "trace": trace,
+            "alerts": alerts,
+            "fertilizer_schedule": fert_record.output if fert_record.status == "success" else None,
+            "irrigation_schedule": irrigation_record.output if irrigation_record.status == "success" else None,
+            "pest_risks": pest_record.output if pest_record and pest_record.status == "success" else None,
         }

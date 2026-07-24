@@ -54,3 +54,15 @@ def list_financial_projections(db: DBSession, session_id: str) -> list[Financial
         .filter(FinancialProjection.session_id == session_id)
         .all()
     )
+
+
+def get_latest_financial_projection(db: DBSession, session_id: str) -> FinancialProjection | None:
+    """Most recently computed projection for a session — used by /simulate to
+    default to "the crop we were just discussing" when the farmer doesn't
+    name one explicitly."""
+    return (
+        db.query(FinancialProjection)
+        .filter(FinancialProjection.session_id == session_id)
+        .order_by(FinancialProjection.created_at.desc())
+        .first()
+    )

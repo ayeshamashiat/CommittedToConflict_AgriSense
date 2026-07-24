@@ -19,6 +19,10 @@ class Session(Base):
     __tablename__ = "sessions"
 
     id: Mapped[str] = mapped_column(String, primary_key=True, default=_uuid)
+    # Farmer-chosen identifier (e.g. phone number) that persists across devices/sessions.
+    # When a new session starts with a farmer_key that has a prior session, the farm
+    # profile is carried forward automatically — this is Tier 1 "persistent memory".
+    farmer_key: Mapped[str | None] = mapped_column(String, nullable=True, index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime, default=datetime.utcnow, onupdate=datetime.utcnow

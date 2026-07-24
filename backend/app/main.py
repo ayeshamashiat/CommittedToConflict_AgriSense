@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.routes import calculate, chat, health, retrieve, sessions, weather
+from app.api.routes import calculate, chat, health, retrieve, sessions, simulate, weather
 from app.config import get_settings
 from app.db.database import Base, SessionLocal, engine
 from app.db.repositories.crop_reference_repo import seed_if_empty
@@ -40,3 +40,4 @@ app.include_router(weather.router)
 app.include_router(retrieve.router)
 app.include_router(calculate.router)
 app.include_router(sessions.router)
+app.include_router(simulate.router)

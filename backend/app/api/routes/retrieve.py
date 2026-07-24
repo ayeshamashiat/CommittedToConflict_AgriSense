@@ -25,7 +25,7 @@ class RetrieveResponse(RAGOutput):
 
 @router.post("/retrieve", response_model=RetrieveResponse)
 def retrieve(payload: RetrieveRequest, db: DBSession = Depends(get_db)) -> RetrieveResponse:
-    session = get_or_create_session(db, payload.session_id)
+    session, _ = get_or_create_session(db, payload.session_id)
     input_data = RAGInput(query=payload.query, n_results=payload.n_results)
 
     started = time.perf_counter()

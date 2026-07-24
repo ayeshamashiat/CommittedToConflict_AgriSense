@@ -8,7 +8,7 @@ from app.api.deps import get_db
 from app.db.repositories.farm_repo import get_profile, missing_fields
 from app.db.repositories.message_repo import list_messages
 from app.db.repositories.plan_repo import list_financial_projections, list_season_plans
-from app.db.repositories.session_repo import get_session, list_sessions
+from app.db.repositories.session_repo import get_session, list_sessions, list_sessions_for_farmer
 from app.db.repositories.tool_log_repo import list_tool_calls
 from app.schemas.farm_profile import FarmProfileOut
 
@@ -49,14 +49,15 @@ class HistoryResponse(BaseModel):
 
 
 @router.get("/sessions", response_model=list[SessionSummary])
-def get_sessions(db: DBSession = Depends(get_db)) -> list[SessionSummary]:
+def get_sessions(farmer_key: str | None = None, db: DBSession = Depends(get_db)) -> list[SessionSummary]:
+    rows = list_sessions_for_farmer(db, farmer_key) if farmer_key else list_sessions(db)
     return [
         SessionSummary(
             session_id=s.id,
             created_at=s.created_at.isoformat(),
             updated_at=s.updated_at.isoformat(),
         )
-        for s in list_sessions(db)
+        for s in rows
     ]
 
 

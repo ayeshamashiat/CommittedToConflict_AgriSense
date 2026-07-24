@@ -79,3 +79,101 @@ class FinanceOutput(BaseModel):
     yield_source: str = ""
     price_source: str = ""
     notes: str = ""
+
+
+# ---- Fertilizer scheduler tool (Tier 1) ----------------------------------
+
+
+class FertilizerScheduleInput(BaseModel):
+    crop: str
+    farm_size: float = Field(..., description="Farm size in acres")
+
+
+class FertilizerStageDose(BaseModel):
+    stage: str
+    days_after_sowing: int
+    urea_kg: float
+    tsp_kg: float
+    mop_kg: float
+    cost_bdt: float
+    organic_alternative: str
+
+
+class FertilizerScheduleOutput(BaseModel):
+    crop: str
+    stages: list[FertilizerStageDose]
+    total_cost_bdt: float
+    data_confidence: str
+    notes: str
+
+
+# ---- Irrigation scheduler tool (Tier 1) ----------------------------------
+
+
+class IrrigationScheduleInput(BaseModel):
+    crop: str
+    farm_size: float = Field(..., description="Farm size in acres")
+    water_availability: str
+
+
+class IrrigationEvent(BaseModel):
+    stage: str
+    days_after_sowing: int
+    note: str
+    cost_bdt: float
+
+
+class IrrigationScheduleOutput(BaseModel):
+    crop: str
+    events: list[IrrigationEvent]
+    total_cost_bdt: float
+    notes: str
+
+
+# ---- Pest & disease risk tool (Tier 1) -----------------------------------
+
+
+class PestRiskInput(BaseModel):
+    crop: str
+    temperature: float
+    humidity: float
+    rainfall: float
+
+
+class PestRiskItem(BaseModel):
+    name: str
+    kind: str  # "pest" | "disease"
+    risk_level: str  # "Low" | "Medium" | "High"
+    trigger_reason: str
+    prevention: str
+    treatment: str
+    estimated_cost_bdt: float
+
+
+class PestRiskOutput(BaseModel):
+    crop: str
+    risks: list[PestRiskItem]
+    source: str
+
+
+# ---- Scenario simulation tool (Tier 1) -----------------------------------
+
+
+class ScenarioSimulationInput(BaseModel):
+    crop: str
+    farm_size: float = Field(..., description="Farm size in acres")
+    budget: float
+    rainfall_change_percent: float = Field(
+        default=0.0, description="e.g. -30 for 'rainfall drops 30%', +20 for 'rises 20%'"
+    )
+    budget_change_percent: float = Field(
+        default=0.0, description="e.g. -40 for 'budget cut 40%'"
+    )
+
+
+class ScenarioSimulationOutput(BaseModel):
+    crop: str
+    original: FinanceOutput
+    revised: FinanceOutput
+    assumptions: str
+    explanation: str

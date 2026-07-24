@@ -58,6 +58,31 @@ def update_profile(db: DBSession, session_id: str, fields: dict) -> FarmProfile:
     return profile
 
 
+def carry_forward_profile(db: DBSession, new_session_id: str, source_session_id: str) -> FarmProfile | None:
+    """Copies a farm profile from a returning farmer's most recent session into
+    their brand-new session, so they never have to re-enter location/soil/etc.
+    Returns the new session's profile if a source profile existed, else None.
+
+    Sets fields directly rather than going through update_profile(), because
+    source.farm_size is already stored in acres — re-running it through
+    update_profile's unit-conversion branch (which expects a raw farmer-entered
+    value + unit) would silently convert it a second time.
+    """
+    source = get_profile(db, source_session_id)
+    if source is None:
+        return None
+
+    new_profile = get_or_create_profile(db, new_session_id)
+    for field in SETTABLE_FIELDS:
+        value = getattr(source, field)
+        if value is not None:
+            setattr(new_profile, field, value)
+    db.add(new_profile)
+    db.commit()
+    db.refresh(new_profile)
+    return new_profile
+
+
 def missing_fields(profile: FarmProfile | None) -> list[str]:
     if profile is None:
         return list(REQUIRED_FIELDS)

@@ -1,14 +1,22 @@
 """Registers AgriTool implementations and exposes lookup for planner/executor."""
 
 from app.tools.base import AgriTool
+from app.tools.fertilizer_scheduler_tool import FertilizerSchedulerTool
 from app.tools.finance_tool import FinanceTool
+from app.tools.irrigation_scheduler_tool import IrrigationSchedulerTool
+from app.tools.pest_risk_tool import PestRiskTool
 from app.tools.rag_tool import RAGTool
+from app.tools.scenario_simulator_tool import ScenarioSimulatorTool
 from app.tools.weather_tool import WeatherTool
 
 _TOOLS: dict[str, AgriTool] = {
     WeatherTool.name: WeatherTool(),
     RAGTool.name: RAGTool(),
     FinanceTool.name: FinanceTool(),
+    FertilizerSchedulerTool.name: FertilizerSchedulerTool(),
+    IrrigationSchedulerTool.name: IrrigationSchedulerTool(),
+    PestRiskTool.name: PestRiskTool(),
+    ScenarioSimulatorTool.name: ScenarioSimulatorTool(),
 }
 
 

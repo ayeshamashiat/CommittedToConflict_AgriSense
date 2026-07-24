@@ -26,7 +26,7 @@ class WeatherResponse(WeatherOutput):
 
 @router.post("/weather", response_model=WeatherResponse)
 def get_weather(payload: WeatherRequest, db: DBSession = Depends(get_db)) -> WeatherResponse:
-    session = get_or_create_session(db, payload.session_id)
+    session, _ = get_or_create_session(db, payload.session_id)
     input_data = WeatherInput(location=payload.location)
 
     started = time.perf_counter()

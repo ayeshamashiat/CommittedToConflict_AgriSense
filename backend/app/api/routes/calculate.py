@@ -26,7 +26,7 @@ class CalculateResponse(FinanceOutput):
 
 @router.post("/calculate", response_model=CalculateResponse)
 def calculate(payload: CalculateRequest, db: DBSession = Depends(get_db)) -> CalculateResponse:
-    session = get_or_create_session(db, payload.session_id)
+    session, _ = get_or_create_session(db, payload.session_id)
     input_data = FinanceInput(
         crop=payload.crop, farm_size=payload.farm_size, budget=payload.budget
     )
