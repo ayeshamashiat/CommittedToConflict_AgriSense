@@ -1,0 +1,1 @@
+"""Liveness/readiness check endpoint."""
