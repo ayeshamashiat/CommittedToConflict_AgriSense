@@ -1,22 +1,19 @@
 """Tier 2: bdapps CaaS (Charging as a Service) integration.
 
-Field names, endpoint paths, the "MobileAccount" payment-instrument enum, and
-the documented status/error codes (S1000, E1303, E1313, ..., E1603) all match
-the OpenAPI schema embedded in the actual bdapps TAP API doc this hackathon's
-brief links to (https://dev.bdapps.com/API_Documentation/bdapps_tap_api.html)
-— caas/get/balance and caas/direct/debit are the only two CaaS operations it
-defines. An earlier version of this file was built against a *different*
-bdapps PDF (from github.com/BD-Apps/bdapps-Docs) before that mismatch was
-caught mid-testing: it called a nonexistent "/balance/query" path (real path
-is "/get/balance"), sent "Mobile Account" with a space where the schema's
-enum strictly requires "MobileAccount", and assumed a "list payment
-instruments" operation that this API doesn't actually have. All three are
-fixed below.
+Field names, endpoint paths, and status/error codes (S1000, E1303, E1312,
+E1326, E1603, ...) match the official "BDApps API Guide" (hSenid Mobile
+Solutions, doc code ROB-API-DGD v1.1.3, 18 Sep 2019) — the canonical
+reference, provided directly alongside this project's own sandbox
+credentials. Two earlier attempts at this file were each built against a
+different, less authoritative public doc page and got contradicted by this
+one on exactly the same three points, so their "fixes" are reverted here:
 
-  - caas/get/balance    -> query_balance()
-  - caas/direct/debit   -> direct_debit()
-  - (no real "list instruments" op exists; get_payment_instrument_list()
-    is simulator-only, see its docstring)
+  - caas/balance/query  -> query_balance()   (NOT "caas/get/balance")
+  - caas/list/pi        -> get_payment_instrument_list()  (this operation
+    DOES exist for real — an earlier version wrongly claimed it didn't and
+    made this simulator-only)
+  - paymentInstrumentName is the literal string "Mobile Account" WITH a
+    space in every documented sample request — NOT "MobileAccount"
 
 Two modes, chosen automatically per call:
 
@@ -67,14 +64,11 @@ def _auth_fields() -> dict:
     }
 
 
-# The rest of this app uses the friendlier "Mobile Account" (with a space) as
-# its own internal default/display value (DB default, schema default, UI
-# copy) — but the real bdapps schema's paymentInstrumentName enum only
-# accepts the single literal "MobileAccount" (no space). Rather than
-# threading that distinction through every caller, every *real* HTTP call
-# normalizes to the one value bdapps actually accepts; the simulator (and
-# everything else in this codebase) keeps using the friendlier spelling.
-_REAL_PAYMENT_INSTRUMENT_NAME = "MobileAccount"
+# Per the official v1.1.3 API guide's own sample requests, this is the exact
+# literal value bdapps expects — "Mobile Account" with a space — matching
+# what the rest of this app already uses as its internal default/display
+# value, so no normalization is needed between real and simulated calls.
+_REAL_PAYMENT_INSTRUMENT_NAME = "Mobile Account"
 
 
 def _get_or_create_wallet(db: DBSession, subscriber_id: str) -> MobileWallet:
@@ -105,11 +99,11 @@ def query_balance(db: DBSession, subscriber_id: str, payment_instrument_name: st
 
 
 def get_payment_instrument_list(db: DBSession, subscriber_id: str, type_: str = "all") -> dict:
-    """Always simulator-backed. The real bdapps TAP API (per its own OpenAPI
-    schema — see this module's docstring) only defines caas/get/balance and
-    caas/direct/debit; there is no "list payment instruments" operation to
-    call for real, so unlike query_balance()/direct_debit() this never
-    attempts a real HTTP call."""
+    if _has_real_credentials():
+        try:
+            return _real_get_payment_instrument_list(subscriber_id, type_)
+        except Exception:
+            logger.exception("Real bdapps CaaS get_payment_instrument_list failed; falling back to local simulator")
     return _simulated_get_payment_instrument_list(db, subscriber_id, type_)
 
 
@@ -160,7 +154,7 @@ def _post(path: str, body: dict) -> dict:
 
 def _real_query_balance(subscriber_id: str, payment_instrument_name: str) -> dict:
     return _post(
-        "/get/balance",
+        "/balance/query",
         {
             **_auth_fields(),
             "subscriberId": subscriber_id,
@@ -168,6 +162,10 @@ def _real_query_balance(subscriber_id: str, payment_instrument_name: str) -> dic
             "currency": "BDT",
         },
     )
+
+
+def _real_get_payment_instrument_list(subscriber_id: str, type_: str) -> dict:
+    return _post("/list/pi", {**_auth_fields(), "subscriberId": subscriber_id, "type": type_})
 
 
 def _real_direct_debit(
