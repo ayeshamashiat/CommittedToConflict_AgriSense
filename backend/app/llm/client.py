@@ -133,17 +133,22 @@ class LLMClient:
         filename: str = "audio.webm",
         language: str | None = None,
     ) -> str | None:
-        """Tier 2 voice input: speech-to-text via OpenAI's Whisper model.
+        """Tier 2 voice input: speech-to-text via OpenAI's speech-to-text model.
         `language` should be an ISO-639-1 code (e.g. "en", "bn") — passing it
-        is optional (Whisper auto-detects) but pins the guess to the app's
-        current UI language, which resolves ambiguity on short recordings."""
+        is optional (auto-detected otherwise) but pins the guess to the app's
+        current UI language, which resolves ambiguity on short recordings.
+
+        Uses gpt-4o-mini-transcribe rather than whisper-1: whisper-1 rejects
+        language="bn" outright ("Language 'bn' is not supported") on at least
+        some OpenAI accounts, which silently broke Bengali voice input end to
+        end — gpt-4o-mini-transcribe accepts "bn" and transcribes it correctly."""
         if not self._client:
             return None
         try:
             buffer = io.BytesIO(audio_bytes)
             buffer.name = filename
             response = self._client.audio.transcriptions.create(
-                model="whisper-1",
+                model="gpt-4o-mini-transcribe",
                 file=buffer,
                 language=language,
             )

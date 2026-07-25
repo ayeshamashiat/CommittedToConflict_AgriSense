@@ -61,6 +61,18 @@ export function clearStoredSessionId() {
   }
 }
 
+// Full demo reset: unlike clearStoredSessionId (new chat, same remembered
+// farmer), this also drops the anonymous farmer_key itself so the next
+// session starts with no carried-forward profile at all.
+export function clearFarmerIdentity() {
+  try {
+    localStorage.removeItem(SESSION_STORAGE_KEY)
+    localStorage.removeItem(FARMER_KEY_STORAGE_KEY)
+  } catch {
+    // localStorage unavailable — nothing to clear
+  }
+}
+
 async function request(path, options = {}) {
   const res = await fetch(`${BASE_URL}${path}`, {
     headers: { 'Content-Type': 'application/json' },

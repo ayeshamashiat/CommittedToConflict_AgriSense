@@ -6,6 +6,8 @@ import CurrentCropSection from './CurrentCropSection.jsx'
 import LiveWeatherWidget from './LiveWeatherWidget.jsx'
 import { useAppState } from '../../context/useAppState.js'
 import { PROFILE_TABS } from '../../lib/constants.js'
+import { clearFarmerIdentity } from '../../api/client.js'
+import { STORAGE_KEY } from '../../lib/storage.js'
 
 const TAB_CONTENT = {
   personal: PersonalDetailsForm,
@@ -43,12 +45,18 @@ export default function FarmerProfilePage() {
           size="sm"
           className="text-stone-400 hover:text-red-600"
           onClick={() => {
-            if (window.confirm('Clear all saved data? This resets your profile, chat history, and generated plan.')) {
-              dispatch({ type: 'RESET_ALL' })
+            if (
+              window.confirm(
+                'Reset demo? This clears the profile, chat history, generated plan, and farmer identity on this device.',
+              )
+            ) {
+              clearFarmerIdentity()
+              localStorage.removeItem(STORAGE_KEY)
+              window.location.reload()
             }
           }}
         >
-          Clear saved data
+          Reset demo
         </Button>
       </div>
     </div>
