@@ -8,6 +8,9 @@ import ChatPage from './features/chat/ChatPage.jsx'
 import CropRecommendationsPage from './features/crops/CropRecommendationsPage.jsx'
 import SeasonPlannerPage from './features/timeline/SeasonPlannerPage.jsx'
 import FinancialDashboardPage from './features/financials/FinancialDashboardPage.jsx'
+import MarketplacePage from './features/marketplace/MarketplacePage.jsx'
+import PriceIntelligencePage from './features/prices/PriceIntelligencePage.jsx'
+import DiseaseDetectionPage from './features/disease/DiseaseDetectionPage.jsx'
 import SmartAlertsPage from './features/alerts/SmartAlertsPage.jsx'
 import WeatherAnalysisPage from './features/weather/WeatherAnalysisPage.jsx'
 import AgentActivityPage from './features/trace/AgentActivityPage.jsx'
@@ -19,6 +22,9 @@ const SECTION_CONTENT = {
   crops: CropRecommendationsPage,
   timeline: SeasonPlannerPage,
   financials: FinancialDashboardPage,
+  marketplace: MarketplacePage,
+  prices: PriceIntelligencePage,
+  disease: DiseaseDetectionPage,
   alerts: SmartAlertsPage,
   weather: WeatherAnalysisPage,
   trace: AgentActivityPage,

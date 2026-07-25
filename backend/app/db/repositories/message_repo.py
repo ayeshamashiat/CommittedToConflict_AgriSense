@@ -20,3 +20,14 @@ def list_messages(db: DBSession, session_id: str) -> list[Message]:
         .order_by(Message.created_at.asc())
         .all()
     )
+
+
+def get_first_user_message(db: DBSession, session_id: str) -> Message | None:
+    """Used as the chat sidebar's conversation title/preview — the farmer's
+    opening message is a far more useful label than a bare timestamp."""
+    return (
+        db.query(Message)
+        .filter(Message.session_id == session_id, Message.role == "user")
+        .order_by(Message.created_at.asc())
+        .first()
+    )

@@ -4,7 +4,10 @@ from app.tools.base import AgriTool
 from app.tools.fertilizer_scheduler_tool import FertilizerSchedulerTool
 from app.tools.finance_tool import FinanceTool
 from app.tools.irrigation_scheduler_tool import IrrigationSchedulerTool
+from app.tools.disease_detection_tool import DiseaseDetectionTool
+from app.tools.marketplace_tool import MarketplaceTool
 from app.tools.pest_risk_tool import PestRiskTool
+from app.tools.price_intelligence_tool import PriceIntelligenceTool
 from app.tools.rag_tool import RAGTool
 from app.tools.scenario_simulator_tool import ScenarioSimulatorTool
 from app.tools.weather_tool import WeatherTool
@@ -17,6 +20,9 @@ _TOOLS: dict[str, AgriTool] = {
     IrrigationSchedulerTool.name: IrrigationSchedulerTool(),
     PestRiskTool.name: PestRiskTool(),
     ScenarioSimulatorTool.name: ScenarioSimulatorTool(),
+    MarketplaceTool.name: MarketplaceTool(),
+    PriceIntelligenceTool.name: PriceIntelligenceTool(),
+    DiseaseDetectionTool.name: DiseaseDetectionTool(),
 }
 
 

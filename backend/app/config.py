@@ -21,6 +21,14 @@ class Settings(BaseSettings):
 
     cors_origins: list[str] = ["http://localhost:5173", "http://localhost:3000"]
 
+    # bdapps CaaS (Charging as a Service) — set both to enable real sandbox
+    # calls to developer.bdapps.com; leave blank to use the local in-process
+    # simulator (see app/integrations/bdapps_caas.py). Never hardcode these —
+    # only ever read from environment/.env.
+    bdapps_application_id: str = ""
+    bdapps_password: str = ""
+    bdapps_caas_base_url: str = "https://developer.bdapps.com/caas"
+
 
 @lru_cache
 def get_settings() -> Settings:

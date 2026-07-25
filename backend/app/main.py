@@ -1,7 +1,19 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.routes import calculate, chat, health, retrieve, sessions, simulate, weather
+from app.api.routes import (
+    calculate,
+    chat,
+    health,
+    marketplace,
+    payments,
+    price_intelligence,
+    disease_detection,
+    retrieve,
+    sessions,
+    simulate,
+    weather,
+)
 from app.config import get_settings
 from app.db.database import Base, SessionLocal, engine
 from app.db.repositories.crop_reference_repo import seed_if_empty
@@ -13,6 +25,11 @@ app = FastAPI(title="AgriSense API")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins,
+    # Vite picks the next free port (5174, 5175, ...) whenever 5173 is already
+    # taken, which silently broke CORS since the allow-list only ever had the
+    # default port hardcoded. Anything on localhost/127.0.0.1 during local dev
+    # is trusted, regardless of which port it landed on.
+    allow_origin_regex=r"^https?://(localhost|127\.0\.0\.1):\d+$",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -41,3 +58,7 @@ app.include_router(retrieve.router)
 app.include_router(calculate.router)
 app.include_router(sessions.router)
 app.include_router(simulate.router)
+app.include_router(marketplace.router)
+app.include_router(payments.router)
+app.include_router(price_intelligence.router)
+app.include_router(disease_detection.router)

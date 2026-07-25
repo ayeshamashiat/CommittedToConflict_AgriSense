@@ -15,6 +15,7 @@ class ForecastDay(BaseModel):
     temperature_max: float
     temperature_min: float
     precipitation_mm: float
+    humidity_mean: float | None = None
 
 
 class WeatherOutput(BaseModel):
@@ -138,12 +139,20 @@ class PestRiskInput(BaseModel):
     temperature: float
     humidity: float
     rainfall: float
+    # Optional 7-day forecast (same shape weather_tool already returns) so risk
+    # can be predicted per growth stage using the actual forecast for near-term
+    # stages, not just today's snapshot repeated for the whole season. Omitting
+    # it (e.g. a direct /calculate-style caller) falls back to the single
+    # current-conditions behavior this tool always had.
+    forecast: list[ForecastDay] = []
 
 
 class PestRiskItem(BaseModel):
     name: str
     kind: str  # "pest" | "disease"
     risk_level: str  # "Low" | "Medium" | "High"
+    growth_stage: str
+    days_after_sowing: int
     trigger_reason: str
     prevention: str
     treatment: str
@@ -177,3 +186,85 @@ class ScenarioSimulationOutput(BaseModel):
     revised: FinanceOutput
     assumptions: str
     explanation: str
+
+
+# ---- Marketplace & supplier comparison tool (Tier 2) ---------------------
+
+
+class MarketplaceInput(BaseModel):
+    item: str = Field(..., description="'urea' | 'tsp' | 'mop' | 'pesticide' | 'seed'")
+    crop: str | None = Field(default=None, description="Required when item='seed'")
+    quantity: float | None = Field(default=None, description="Quantity needed, in the offer's unit")
+    farmer_location: str | None = None
+
+
+class SupplierOffer(BaseModel):
+    supplier_name: str
+    district: str
+    price_per_unit: float
+    unit: str
+    delivery_days: int
+    distance_km: float
+    rating: float | None = None
+    estimated_total_cost: float | None = None
+    composite_score: float
+    # True when supplier_name/location/distance_km came from a real
+    # OpenStreetMap lookup rather than the seeded mock catalog — price/
+    # delivery_days are still estimates even then (see marketplace_tool.py),
+    # since no public source publishes real per-shop pricing for these
+    # informal retailers.
+    is_real_location: bool = False
+
+
+class MarketplaceOutput(BaseModel):
+    item: str
+    unit: str
+    offers: list[SupplierOffer]
+    ranking_method: str
+    source: str
+    distance_note: str = ""
+
+
+# ---- Market price intelligence tool (Tier 2) ------------------------------
+
+
+class PriceIntelligenceInput(BaseModel):
+    crop: str
+
+
+class HistoricalPricePoint(BaseModel):
+    months_ago: int
+    price: float
+
+
+class PriceIntelligenceOutput(BaseModel):
+    crop: str
+    unit: str
+    currency: str
+    current_price: float
+    price_source: str
+    historical_prices: list[HistoricalPricePoint]
+    recommendation: str  # "sell_now" | "store_and_wait"
+    reasoning: str
+    confidence: str
+
+
+# ---- Plant disease detection from images tool (Tier 2) --------------------
+
+
+class DiseaseDetectionInput(BaseModel):
+    image_base64: str = Field(..., description="Base64-encoded image bytes (JPEG/PNG)")
+    crop_hint: str | None = Field(default=None, description="Farmer-stated crop, if known")
+
+
+class DiseaseDetectionOutput(BaseModel):
+    crop_guess: str
+    disease_name: str
+    is_known_in_knowledge_base: bool
+    confidence: str  # "low" | "medium" | "high"
+    symptoms_observed: str
+    prevention: str
+    treatment: str
+    estimated_cost_bdt: float | None = None
+    source: str
+    disclaimer: str

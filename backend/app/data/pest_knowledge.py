@@ -1,5 +1,6 @@
 """Pest & disease knowledge base (Tier 1): common, well-documented pests and
-diseases per crop, with the weather conditions that raise their risk.
+diseases per crop, with the weather conditions and growth stages that raise
+their risk.
 
 These are standard, widely-taught IPM (Integrated Pest Management) facts —
 e.g. potato late blight favoring cool+humid conditions is textbook plant
@@ -7,20 +8,31 @@ pathology, not something requiring a specific citation the way a price or
 yield figure does. Treated as "general agronomy" confidence, same as the
 generic soil passages in knowledge_base.py. Estimated treatment costs are
 rough smallholder-practice figures, not sourced from a specific price survey.
+Growth-stage windows (applicable_stages) are likewise standard IPM staging
+knowledge (e.g. rice blast peaks at tillering-to-booting, fruit flies attack
+at fruiting) — not crop-variety-specific figures.
 
 Trigger conditions are declarative thresholds evaluated against the weather
-tool's actual returned values — this is what keeps risk assessment grounded
-in real data rather than a static "rice always gets blast" list.
+tool's actual returned/forecast values — this is what keeps risk assessment
+grounded in real data rather than a static "rice always gets blast" list.
 """
 
+# The 5 canonical growth-stage buckets pest_risk_tool.py checks each pest
+# against — deliberately the same granularity as the irrigation/fertilizer
+# schedulers' stage checkpoints, so all three Tier 1 tools describe a season
+# in matching terms.
+ALL_STAGES = ["establishment", "vegetative", "flowering", "fruiting", "preharvest"]
+
 # Threshold keys evaluated against WeatherOutput fields: temperature (C),
-# humidity (%), rainfall (mm, current/recent). All present thresholds must
-# hold for the risk to be flagged.
+# humidity (%), rainfall (mm, current/recent or per forecast day). All present
+# thresholds must hold, for a stage the pest/disease is applicable_stages for,
+# for the risk to be flagged.
 PEST_KNOWLEDGE: dict[str, list[dict]] = {
     "rice": [
         {
             "name": "Rice blast",
             "kind": "disease",
+            "applicable_stages": ["vegetative", "flowering"],
             "min_humidity": 85,
             "temp_min": 20,
             "temp_max": 30,
@@ -31,6 +43,7 @@ PEST_KNOWLEDGE: dict[str, list[dict]] = {
         {
             "name": "Brown planthopper",
             "kind": "pest",
+            "applicable_stages": ["vegetative", "flowering", "fruiting"],
             "min_humidity": 80,
             "prevention": "Avoid excess nitrogen and overly dense planting; maintain alternate wetting-and-drying rather than continuous flooding.",
             "treatment": "Spray a recommended insecticide (e.g. imidacloprid) if hopper burn patches appear; drain the field briefly to disrupt the pest.",
@@ -39,6 +52,7 @@ PEST_KNOWLEDGE: dict[str, list[dict]] = {
         {
             "name": "Bacterial leaf blight",
             "kind": "disease",
+            "applicable_stages": ["vegetative", "flowering", "fruiting"],
             "min_rainfall": 10,
             "min_humidity": 80,
             "prevention": "Use disease-free seed, avoid excess nitrogen, avoid field injury during heavy-rain periods.",
@@ -50,6 +64,7 @@ PEST_KNOWLEDGE: dict[str, list[dict]] = {
         {
             "name": "Wheat rust (yellow/brown)",
             "kind": "disease",
+            "applicable_stages": ["vegetative", "flowering"],
             "min_humidity": 75,
             "temp_min": 15,
             "temp_max": 22,
@@ -60,6 +75,7 @@ PEST_KNOWLEDGE: dict[str, list[dict]] = {
         {
             "name": "Aphids",
             "kind": "pest",
+            "applicable_stages": ["vegetative", "flowering"],
             "temp_min": 15,
             "temp_max": 25,
             "max_rainfall": 5,
@@ -72,6 +88,7 @@ PEST_KNOWLEDGE: dict[str, list[dict]] = {
         {
             "name": "Fall armyworm",
             "kind": "pest",
+            "applicable_stages": ["establishment", "vegetative"],
             "temp_min": 25,
             "temp_max": 32,
             "prevention": "Scout whorls weekly from emergence; intercrop with legumes to reduce moth landing.",
@@ -83,6 +100,7 @@ PEST_KNOWLEDGE: dict[str, list[dict]] = {
         {
             "name": "Late blight",
             "kind": "disease",
+            "applicable_stages": ["vegetative", "fruiting"],
             "min_humidity": 90,
             "temp_min": 10,
             "temp_max": 20,
@@ -95,6 +113,7 @@ PEST_KNOWLEDGE: dict[str, list[dict]] = {
         {
             "name": "Tomato fruit borer",
             "kind": "pest",
+            "applicable_stages": ["flowering", "fruiting"],
             "temp_min": 25,
             "prevention": "Use pheromone traps to monitor moth activity; remove and destroy damaged fruit.",
             "treatment": "Apply a recommended insecticide targeted at egg-hatch stage.",
@@ -103,6 +122,7 @@ PEST_KNOWLEDGE: dict[str, list[dict]] = {
         {
             "name": "Early/late blight",
             "kind": "disease",
+            "applicable_stages": ["vegetative", "flowering", "fruiting"],
             "min_humidity": 85,
             "prevention": "Stake plants for airflow, avoid overhead watering, rotate away from solanaceous crops.",
             "treatment": "Apply a protectant fungicide at first leaf spotting.",
@@ -113,6 +133,7 @@ PEST_KNOWLEDGE: dict[str, list[dict]] = {
         {
             "name": "Jute hairy caterpillar",
             "kind": "pest",
+            "applicable_stages": ["establishment", "vegetative"],
             "temp_min": 25,
             "min_humidity": 75,
             "prevention": "Hand-collect egg masses early in infestation; keep field bunds clean of alternate host weeds.",
@@ -124,6 +145,7 @@ PEST_KNOWLEDGE: dict[str, list[dict]] = {
         {
             "name": "Sugarcane stem borer",
             "kind": "pest",
+            "applicable_stages": ["vegetative", "fruiting"],
             "temp_min": 25,
             "prevention": "Remove and destroy dead hearts early; avoid water stress which increases susceptibility.",
             "treatment": "Apply a recommended granular insecticide at the base of affected stalks.",
@@ -132,6 +154,7 @@ PEST_KNOWLEDGE: dict[str, list[dict]] = {
         {
             "name": "Red rot",
             "kind": "disease",
+            "applicable_stages": ["vegetative", "fruiting"],
             "min_rainfall": 10,
             "min_humidity": 80,
             "prevention": "Use disease-free setts, avoid waterlogging, rotate out of sugarcane for a season if red rot was previously severe.",
@@ -144,6 +167,7 @@ PEST_KNOWLEDGE: dict[str, list[dict]] = {
         {
             "name": "Diamondback moth",
             "kind": "pest",
+            "applicable_stages": ["establishment", "vegetative"],
             "temp_min": 20,
             "max_rainfall": 5,
             "prevention": "Rotate insecticide classes to avoid resistance; intercrop with tomato or non-brassica trap crops.",
@@ -155,6 +179,7 @@ PEST_KNOWLEDGE: dict[str, list[dict]] = {
         {
             "name": "Diamondback moth",
             "kind": "pest",
+            "applicable_stages": ["establishment", "vegetative"],
             "temp_min": 20,
             "max_rainfall": 5,
             "prevention": "Rotate insecticide classes to avoid resistance; intercrop with non-brassica trap crops.",
@@ -162,11 +187,58 @@ PEST_KNOWLEDGE: dict[str, list[dict]] = {
             "estimated_cost_bdt_per_acre": 1100,
         },
     ],
-    # Cucurbits
+    # Cucurbits (cucumber, pumpkin, bitter gourd) share the same standard IPM
+    # disease profile — downy mildew, powdery mildew, and Cercospora/Alternaria
+    # leaf spot are the three foliar diseases every general cucurbit IPM guide
+    # covers, alongside fruit fly as the dominant pest. Only fruit fly was
+    # present here before; a real farmer photo of a diseased bitter gourd leaf
+    # exposed the gap (the vision model had nothing to cross-reference against
+    # and fell back to its own uncorroborated guess). Distinguishing symptoms
+    # are spelled out explicitly since these three are commonly confused with
+    # each other from a photo alone — downy mildew's lesions are bounded by
+    # leaf veins (angular) with fuzzy grayish-purple sporulation on the
+    # underside, unlike powdery mildew's surface-coating white patches or leaf
+    # spot's rounder, well-margined lesions.
     "cucumber": [
+        {
+            "name": "Downy mildew",
+            "kind": "disease",
+            "applicable_stages": ["vegetative", "flowering", "fruiting"],
+            "temp_min": 15,
+            "temp_max": 25,
+            "min_humidity": 85,
+            "prevention": "Wide plant spacing and staking for airflow; avoid overhead irrigation/wetting foliage; use resistant varieties where available.",
+            "treatment": "Remove and destroy infected leaves; apply a protectant fungicide (e.g. mancozeb) at first sign, or a systemic downy-mildew-specific fungicide if pressure is high.",
+            "estimated_cost_bdt_per_acre": 1800,
+            "symptom_notes": "Angular yellow spots on the upper leaf surface, bounded by leaf veins; grayish-purple fuzzy sporulation on the underside in humid/cool conditions, worst during monsoon.",
+        },
+        {
+            "name": "Powdery mildew",
+            "kind": "disease",
+            "applicable_stages": ["vegetative", "flowering", "fruiting"],
+            "temp_min": 20,
+            "temp_max": 30,
+            "min_humidity": 50,
+            "prevention": "Avoid excess nitrogen; ensure good airflow between plants; use resistant varieties where available.",
+            "treatment": "Apply sulfur-based or systemic fungicide at first sign of white patches.",
+            "estimated_cost_bdt_per_acre": 1500,
+            "symptom_notes": "White, powdery, talcum-like coating on the leaf surface (not confined by veins); favors warm days with humid nights, less rain-dependent than downy mildew.",
+        },
+        {
+            "name": "Cercospora leaf spot",
+            "kind": "disease",
+            "applicable_stages": ["vegetative", "flowering", "fruiting"],
+            "temp_min": 22,
+            "min_humidity": 80,
+            "prevention": "Crop rotation; avoid overhead irrigation; remove crop debris after harvest.",
+            "treatment": "Remove heavily spotted leaves; apply a labeled fungicide (e.g. chlorothalonil or copper-based) if spread continues.",
+            "estimated_cost_bdt_per_acre": 1500,
+            "symptom_notes": "Circular to angular brown-to-black spots with a defined margin, often with a yellow halo; not vein-bounded like downy mildew, no fuzzy underside growth.",
+        },
         {
             "name": "Fruit fly",
             "kind": "pest",
+            "applicable_stages": ["fruiting"],
             "temp_min": 25,
             "min_humidity": 70,
             "prevention": "Use pheromone/bait traps; bag young fruit or harvest promptly to reduce exposure.",
@@ -176,8 +248,44 @@ PEST_KNOWLEDGE: dict[str, list[dict]] = {
     ],
     "pumpkin": [
         {
+            "name": "Downy mildew",
+            "kind": "disease",
+            "applicable_stages": ["vegetative", "flowering", "fruiting"],
+            "temp_min": 15,
+            "temp_max": 25,
+            "min_humidity": 85,
+            "prevention": "Wide plant spacing and staking for airflow; avoid overhead irrigation/wetting foliage; use resistant varieties where available.",
+            "treatment": "Remove and destroy infected leaves; apply a protectant fungicide (e.g. mancozeb) at first sign, or a systemic downy-mildew-specific fungicide if pressure is high.",
+            "estimated_cost_bdt_per_acre": 1800,
+            "symptom_notes": "Angular yellow spots on the upper leaf surface, bounded by leaf veins; grayish-purple fuzzy sporulation on the underside in humid/cool conditions, worst during monsoon.",
+        },
+        {
+            "name": "Powdery mildew",
+            "kind": "disease",
+            "applicable_stages": ["vegetative", "flowering", "fruiting"],
+            "temp_min": 20,
+            "temp_max": 30,
+            "min_humidity": 50,
+            "prevention": "Avoid excess nitrogen; ensure good airflow between plants; use resistant varieties where available.",
+            "treatment": "Apply sulfur-based or systemic fungicide at first sign of white patches.",
+            "estimated_cost_bdt_per_acre": 1500,
+            "symptom_notes": "White, powdery, talcum-like coating on the leaf surface (not confined by veins); favors warm days with humid nights, less rain-dependent than downy mildew.",
+        },
+        {
+            "name": "Cercospora leaf spot",
+            "kind": "disease",
+            "applicable_stages": ["vegetative", "flowering", "fruiting"],
+            "temp_min": 22,
+            "min_humidity": 80,
+            "prevention": "Crop rotation; avoid overhead irrigation; remove crop debris after harvest.",
+            "treatment": "Remove heavily spotted leaves; apply a labeled fungicide (e.g. chlorothalonil or copper-based) if spread continues.",
+            "estimated_cost_bdt_per_acre": 1500,
+            "symptom_notes": "Circular to angular brown-to-black spots with a defined margin, often with a yellow halo; not vein-bounded like downy mildew, no fuzzy underside growth.",
+        },
+        {
             "name": "Fruit fly",
             "kind": "pest",
+            "applicable_stages": ["fruiting"],
             "temp_min": 25,
             "min_humidity": 70,
             "prevention": "Use pheromone/bait traps; remove and destroy fallen infested fruit.",
@@ -187,8 +295,44 @@ PEST_KNOWLEDGE: dict[str, list[dict]] = {
     ],
     "bitter_gourd": [
         {
+            "name": "Downy mildew",
+            "kind": "disease",
+            "applicable_stages": ["vegetative", "flowering", "fruiting"],
+            "temp_min": 15,
+            "temp_max": 25,
+            "min_humidity": 85,
+            "prevention": "Wide plant spacing and staking for airflow; avoid overhead irrigation/wetting foliage; use resistant varieties where available.",
+            "treatment": "Remove and destroy infected leaves; apply a protectant fungicide (e.g. mancozeb) at first sign, or a systemic downy-mildew-specific fungicide if pressure is high.",
+            "estimated_cost_bdt_per_acre": 1800,
+            "symptom_notes": "Angular yellow spots on the upper leaf surface, bounded by leaf veins; grayish-purple fuzzy sporulation on the underside in humid/cool conditions, worst during monsoon.",
+        },
+        {
+            "name": "Powdery mildew",
+            "kind": "disease",
+            "applicable_stages": ["vegetative", "flowering", "fruiting"],
+            "temp_min": 20,
+            "temp_max": 30,
+            "min_humidity": 50,
+            "prevention": "Avoid excess nitrogen; ensure good airflow between plants; use resistant varieties where available.",
+            "treatment": "Apply sulfur-based or systemic fungicide at first sign of white patches.",
+            "estimated_cost_bdt_per_acre": 1500,
+            "symptom_notes": "White, powdery, talcum-like coating on the leaf surface (not confined by veins); favors warm days with humid nights, less rain-dependent than downy mildew.",
+        },
+        {
+            "name": "Cercospora leaf spot",
+            "kind": "disease",
+            "applicable_stages": ["vegetative", "flowering", "fruiting"],
+            "temp_min": 22,
+            "min_humidity": 80,
+            "prevention": "Crop rotation; avoid overhead irrigation; remove crop debris after harvest.",
+            "treatment": "Remove heavily spotted leaves; apply a labeled fungicide (e.g. chlorothalonil or copper-based) if spread continues.",
+            "estimated_cost_bdt_per_acre": 1500,
+            "symptom_notes": "Circular to angular brown-to-black spots with a defined margin, often with a yellow halo; not vein-bounded like downy mildew, no fuzzy underside growth.",
+        },
+        {
             "name": "Fruit fly",
             "kind": "pest",
+            "applicable_stages": ["fruiting"],
             "temp_min": 25,
             "min_humidity": 70,
             "prevention": "Use pheromone/bait traps; bag young fruit.",
@@ -201,6 +345,7 @@ PEST_KNOWLEDGE: dict[str, list[dict]] = {
         {
             "name": "Purple blotch",
             "kind": "disease",
+            "applicable_stages": ["vegetative", "fruiting"],
             "min_humidity": 80,
             "temp_min": 20,
             "temp_max": 30,
@@ -211,6 +356,7 @@ PEST_KNOWLEDGE: dict[str, list[dict]] = {
         {
             "name": "Thrips",
             "kind": "pest",
+            "applicable_stages": ["vegetative", "fruiting"],
             "temp_min": 25,
             "max_rainfall": 5,
             "prevention": "Avoid water stress, which increases thrips susceptibility; use reflective mulch.",
@@ -222,6 +368,7 @@ PEST_KNOWLEDGE: dict[str, list[dict]] = {
         {
             "name": "Purple blotch",
             "kind": "disease",
+            "applicable_stages": ["vegetative", "fruiting"],
             "min_humidity": 80,
             "temp_min": 20,
             "temp_max": 30,
@@ -235,6 +382,7 @@ PEST_KNOWLEDGE: dict[str, list[dict]] = {
         {
             "name": "Rhizome rot",
             "kind": "disease",
+            "applicable_stages": ["vegetative", "fruiting", "preharvest"],
             "min_rainfall": 15,
             "min_humidity": 85,
             "prevention": "Ensure raised beds and good drainage — this disease is driven almost entirely by waterlogging.",
@@ -246,6 +394,7 @@ PEST_KNOWLEDGE: dict[str, list[dict]] = {
         {
             "name": "Rhizome rot",
             "kind": "disease",
+            "applicable_stages": ["vegetative", "fruiting", "preharvest"],
             "min_rainfall": 15,
             "min_humidity": 85,
             "prevention": "Ensure raised beds and good drainage.",
@@ -257,6 +406,7 @@ PEST_KNOWLEDGE: dict[str, list[dict]] = {
         {
             "name": "Brinjal fruit and shoot borer",
             "kind": "pest",
+            "applicable_stages": ["vegetative", "flowering", "fruiting"],
             "temp_min": 25,
             "min_humidity": 70,
             "prevention": "Prune and destroy wilted shoots promptly; use pheromone traps to monitor moths.",
@@ -268,6 +418,7 @@ PEST_KNOWLEDGE: dict[str, list[dict]] = {
         {
             "name": "Yellow vein mosaic virus (whitefly-borne)",
             "kind": "disease",
+            "applicable_stages": ["establishment", "vegetative", "flowering"],
             "temp_min": 28,
             "max_rainfall": 5,
             "prevention": "Control whitefly vectors, use yellow sticky traps, remove infected plants early.",
@@ -279,6 +430,7 @@ PEST_KNOWLEDGE: dict[str, list[dict]] = {
         {
             "name": "Pod borer",
             "kind": "pest",
+            "applicable_stages": ["flowering", "fruiting"],
             "temp_min": 22,
             "prevention": "Monitor with pheromone traps; encourage natural predators by avoiding broad-spectrum sprays early season.",
             "treatment": "Apply a recommended insecticide if pod damage exceeds threshold.",
@@ -289,6 +441,7 @@ PEST_KNOWLEDGE: dict[str, list[dict]] = {
         {
             "name": "Mustard aphid",
             "kind": "pest",
+            "applicable_stages": ["vegetative", "flowering"],
             "temp_min": 15,
             "temp_max": 25,
             "max_rainfall": 5,
@@ -301,11 +454,13 @@ PEST_KNOWLEDGE: dict[str, list[dict]] = {
 
 # Fallback for crops without a specific entry above (e.g. minor pulses,
 # oilseeds, root vegetables) — general soil/fungal risk under wet conditions,
-# which is broadly true across most crops rather than crop-specific.
+# which is broadly true across most crops rather than crop-specific, so these
+# apply across every growth stage.
 DEFAULT_PEST_RISKS: list[dict] = [
     {
         "name": "Root/collar rot (general)",
         "kind": "disease",
+        "applicable_stages": ALL_STAGES,
         "min_rainfall": 15,
         "min_humidity": 85,
         "prevention": "Ensure good field drainage; avoid waterlogging around the root zone.",
@@ -315,6 +470,7 @@ DEFAULT_PEST_RISKS: list[dict] = [
     {
         "name": "Sap-sucking insects (aphids/whitefly/jassids, general)",
         "kind": "pest",
+        "applicable_stages": ALL_STAGES,
         "temp_min": 25,
         "max_rainfall": 5,
         "prevention": "Monitor undersides of leaves weekly; encourage natural predators by minimizing broad-spectrum spraying.",

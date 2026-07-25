@@ -178,3 +178,45 @@ class CropReference(Base):
     updated_at: Mapped[datetime] = mapped_column(
         DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
     )
+
+
+class MobileWallet(Base):
+    """Tier 2: simulated mobile-account balance for the bdapps CaaS sandbox
+    integration (see app/integrations/bdapps_caas.py). Not a real telco
+    account — a stateful stand-in so 'Query Balance' and 'Direct Debit'
+    behave like the real CaaS contract (balance actually decreases after a
+    charge) rather than always returning a fixed canned response.
+    """
+
+    __tablename__ = "mobile_wallets"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=_uuid)
+    subscriber_id: Mapped[str] = mapped_column(String, unique=True, index=True)
+    balance_bdt: Mapped[float] = mapped_column(Float, default=5000.0)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
+    )
+
+
+class PaymentTransaction(Base):
+    """Tier 2: a bdapps CaaS Direct Debit transaction record — the receipt
+    trail for a marketplace checkout. Field names mirror the real bdapps
+    CaaS response (externalTrxId/internalTrxId/referenceId/statusCode) so
+    this is a faithful sandbox simulation, not an invented shape.
+    """
+
+    __tablename__ = "payment_transactions"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=_uuid)
+    session_id: Mapped[str | None] = mapped_column(ForeignKey("sessions.id"), nullable=True, index=True)
+    external_trx_id: Mapped[str] = mapped_column(String, unique=True, index=True)
+    internal_trx_id: Mapped[str] = mapped_column(String)
+    reference_id: Mapped[str] = mapped_column(String)
+    subscriber_id: Mapped[str] = mapped_column(String, index=True)
+    payment_instrument_name: Mapped[str] = mapped_column(String, default="Mobile Account")
+    amount: Mapped[float] = mapped_column(Float)
+    currency: Mapped[str] = mapped_column(String, default="BDT")
+    purpose: Mapped[str] = mapped_column(Text, default="")
+    status_code: Mapped[str] = mapped_column(String)
+    status_detail: Mapped[str] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)

@@ -8,6 +8,7 @@ if no LLM key is configured, or if the LLM's JSON doesn't match the expected
 shape.
 """
 
+from app.agent.i18n import DEFAULT_REPLY_TEMPLATE_BN, LLM_BN_INSTRUCTION
 from app.db.models import FarmProfile
 from app.llm.client import LLMClient
 from app.llm.prompts.explanation_prompt import build_explanation_prompt
@@ -37,15 +38,16 @@ def compose(
     weather: dict | None,
     per_crop: dict[str, dict],
     message: str,
+    language: str = "en",
 ) -> tuple[list[CropRecommendation], SeasonPlanOut, str]:
     """per_crop: {crop_name: {"rag_passages": [...], "finance": FinanceOutput dict,
     "water_need": str, "duration_days": int, "suitable_soils": list[str]}}"""
 
-    llm_result = _try_llm(llm, profile, weather, per_crop, message)
+    llm_result = _try_llm(llm, profile, weather, per_crop, message, language)
     if llm_result is not None:
         return llm_result
 
-    return _deterministic(profile, weather, per_crop)
+    return _deterministic(profile, weather, per_crop, language)
 
 
 def _try_llm(
@@ -54,6 +56,7 @@ def _try_llm(
     weather: dict | None,
     per_crop: dict[str, dict],
     message: str,
+    language: str = "en",
 ) -> tuple[list[CropRecommendation], SeasonPlanOut, str] | None:
     crop_names = list(per_crop.keys())
     profile_dict = {
@@ -73,6 +76,8 @@ def _try_llm(
         for name in crop_names
     ]
     system, user = build_explanation_prompt(profile_dict, weather, evidence, message)
+    if language == "bn":
+        system += LLM_BN_INSTRUCTION
     result = llm.complete_json(system, user)
     if not result or not isinstance(result.get("crops"), list):
         return None
@@ -121,12 +126,12 @@ def _try_llm(
     reply = str(result.get("reply", "")).strip()
     reply_sp_shape = {"reply": reply}  # reuse the same mismatch heuristic for the reply text
     if not reply or not _season_plan_matches_top_crop(reply_sp_shape, top_name, crop_names):
-        reply = _default_reply(profile, crop_names)
+        reply = _default_reply(profile, crop_names, language)
     return recommendations, season_plan, reply
 
 
 def _deterministic(
-    profile: FarmProfile, weather: dict | None, per_crop: dict[str, dict]
+    profile: FarmProfile, weather: dict | None, per_crop: dict[str, dict], language: str = "en"
 ) -> tuple[list[CropRecommendation], SeasonPlanOut, str]:
     recommendations = []
     for name, data in per_crop.items():
@@ -157,22 +162,44 @@ def _deterministic(
 
     top_name = next(iter(per_crop))
     top_data = per_crop[top_name]
-    season_plan = SeasonPlanOut(
-        crop_name=top_name.replace("_", " ").title(),
-        land_preparation=f"Prepare and level the field for {top_name} 1-2 weeks before {profile.target_season} sowing.",
-        sowing=f"Sow {top_name} at the start of the {profile.target_season} season, following recommended seed spacing.",
-        fertilizer="Apply basal fertilizer at sowing, then top-dress at the vegetative stage.",
-        irrigation=f"Irrigate according to {profile.water_availability} water availability, prioritizing critical growth stages.",
-        pest_checks="Scout weekly for pests/disease and treat promptly if thresholds are exceeded.",
-        harvest=f"Harvest {top_name} at maturity, roughly {top_data['duration_days']} days after sowing.",
-    )
+    top_display = top_name.replace("_", " ")
+    if language == "bn":
+        season_plan = SeasonPlanOut(
+            crop_name=top_name.replace("_", " ").title(),
+            land_preparation=f"{profile.target_season} মৌসুমে বপনের ১-২ সপ্তাহ আগে {top_display}-এর জন্য জমি প্রস্তুত ও সমতল করুন।",
+            sowing=f"{profile.target_season} মৌসুমের শুরুতে সুপারিশকৃত বীজের দূরত্ব মেনে {top_display} বপন করুন।",
+            fertilizer="বপনের সময় মূল সার প্রয়োগ করুন, তারপর বৃদ্ধির পর্যায়ে টপ-ড্রেসিং করুন।",
+            irrigation=f"{profile.water_availability} পানির প্রাপ্যতা অনুযায়ী সেচ দিন, গুরুত্বপূর্ণ বৃদ্ধির পর্যায়গুলোকে অগ্রাধিকার দিন।",
+            pest_checks="সাপ্তাহিক পোকামাকড়/রোগ পর্যবেক্ষণ করুন এবং সীমা ছাড়িয়ে গেলে দ্রুত ব্যবস্থা নিন।",
+            harvest=f"{top_display} পরিপক্ব হলে, বপনের প্রায় {top_data['duration_days']} দিন পরে ফসল কাটুন।",
+        )
+    else:
+        season_plan = SeasonPlanOut(
+            crop_name=top_name.replace("_", " ").title(),
+            land_preparation=f"Prepare and level the field for {top_name} 1-2 weeks before {profile.target_season} sowing.",
+            sowing=f"Sow {top_name} at the start of the {profile.target_season} season, following recommended seed spacing.",
+            fertilizer="Apply basal fertilizer at sowing, then top-dress at the vegetative stage.",
+            irrigation=f"Irrigate according to {profile.water_availability} water availability, prioritizing critical growth stages.",
+            pest_checks="Scout weekly for pests/disease and treat promptly if thresholds are exceeded.",
+            harvest=f"Harvest {top_name} at maturity, roughly {top_data['duration_days']} days after sowing.",
+        )
 
-    reply = _default_reply(profile, list(per_crop.keys()))
+    reply = _default_reply(profile, list(per_crop.keys()), language)
     return recommendations, season_plan, reply
 
 
-def _default_reply(profile: FarmProfile, crop_names: list[str]) -> str:
+def _default_reply(profile: FarmProfile, crop_names: list[str], language: str = "en") -> str:
     top = crop_names[0].replace("_", " ").title() if crop_names else ""
+    if language == "bn":
+        return DEFAULT_REPLY_TEMPLATE_BN.format(
+            location=profile.location,
+            farm_size=profile.farm_size,
+            soil_type=profile.soil_type,
+            water_availability=profile.water_availability,
+            season=profile.target_season,
+            count=len(crop_names),
+            top=top,
+        )
     return (
         f"Based on your {profile.farm_size}-acre farm in {profile.location} with "
         f"{profile.soil_type} soil and {profile.water_availability} water availability, "

@@ -60,7 +60,13 @@ class WeatherTool(AgriTool):
                     "latitude": lat,
                     "longitude": lon,
                     "current": "temperature_2m,relative_humidity_2m,precipitation",
-                    "daily": "temperature_2m_max,temperature_2m_min,precipitation_sum",
+                    # relative_humidity_2m_mean lets the pest/disease risk tool
+                    # evaluate humidity-based triggers (e.g. blast, blight) for
+                    # future growth-stage days, not just today's snapshot.
+                    "daily": (
+                        "temperature_2m_max,temperature_2m_min,precipitation_sum,"
+                        "relative_humidity_2m_mean"
+                    ),
                     "forecast_days": 7,
                     "timezone": "auto",
                 },
@@ -74,6 +80,7 @@ class WeatherTool(AgriTool):
             temp_max = daily.get("temperature_2m_max", [])
             temp_min = daily.get("temperature_2m_min", [])
             precip = daily.get("precipitation_sum", [])
+            humidity_mean = daily.get("relative_humidity_2m_mean", [])
 
             forecast = [
                 ForecastDay(
@@ -81,6 +88,7 @@ class WeatherTool(AgriTool):
                     temperature_max=temp_max[i],
                     temperature_min=temp_min[i],
                     precipitation_mm=precip[i],
+                    humidity_mean=humidity_mean[i] if i < len(humidity_mean) else None,
                 )
                 for i in range(len(dates))
             ]

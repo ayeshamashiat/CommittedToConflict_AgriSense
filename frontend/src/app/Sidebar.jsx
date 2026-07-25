@@ -1,9 +1,11 @@
 import clsx from 'clsx'
 import { useAppState } from '../context/useAppState.js'
+import { useTranslation } from '../context/useTranslation.js'
 import { NAV_SECTIONS } from '../lib/constants.js'
 
 export default function Sidebar() {
   const { state, dispatch } = useAppState()
+  const { t } = useTranslation()
   const { activeSection, isSidebarOpen } = state.ui
 
   const goToSection = (id) => dispatch({ type: 'SET_SECTION', payload: id })
@@ -27,7 +29,7 @@ export default function Sidebar() {
       >
         <div className="mb-3 flex items-center gap-2 px-2 py-1">
           <span className="text-xl">🌾</span>
-          <span className="font-semibold tracking-tight">AgriSense AI</span>
+          <span className="font-semibold tracking-tight">{t('appName')}</span>
         </div>
 
         {NAV_SECTIONS.map((section) => {
@@ -45,7 +47,7 @@ export default function Sidebar() {
               )}
             >
               <span className="text-base">{section.icon}</span>
-              <span className="flex-1">{section.label}</span>
+              <span className="flex-1">{t(`nav_${section.id}`)}</span>
               {alertCount > 0 && (
                 <span className="flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-semibold text-white">
                   {alertCount}

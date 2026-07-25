@@ -3,6 +3,7 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session as DBSession
 
+from app.agent.intake import FIELD_KEYS, extract_profile_facts
 from app.api.deps import get_agent, get_db
 from app.db.repositories.farm_repo import (
     carry_forward_profile,
@@ -39,8 +40,37 @@ def chat(payload: ChatRequest, db: DBSession = Depends(get_db), agent=Depends(ge
         update_profile(db, session.id, payload.profile.model_dump(exclude_unset=True))
     profile = get_or_create_profile(db, session.id)
 
+    # Conversational intake: a farmer describing their farm in prose ("2 acres
+    # of loamy soil in Rangpur...") must work, not just a structured `profile`
+    # object. Facts extracted here can also correct a field the profile
+    # already has a value for ("my farm is in Dinajpur now") — extraction is
+    # designed to only return facts the message actually states, so this is
+    # how the farmer edits their profile through chat, not just the form.
+    profile_updated = False
     if agent is not None:
-        result = agent.handle_turn(db=db, session_id=session.id, message=payload.message, profile=profile)
+        still_missing = missing_fields(profile)
+        expected_field = still_missing[0] if still_missing else None
+        extracted = extract_profile_facts(agent.llm, payload.message, expected_field)
+        to_apply = {k: v for k, v in extracted.items() if k in FIELD_KEYS}
+        if "farm_size" in to_apply and "farm_size_unit" in extracted:
+            to_apply["farm_size_unit"] = extracted["farm_size_unit"]
+        changed = {
+            k: v for k, v in to_apply.items() if k != "farm_size_unit" and getattr(profile, k, None) != v
+        }
+        if changed:
+            update_profile(db, session.id, to_apply)
+            profile = get_or_create_profile(db, session.id)
+            profile_updated = True
+
+    if agent is not None:
+        result = agent.handle_turn(
+            db=db,
+            session_id=session.id,
+            message=payload.message,
+            profile=profile,
+            profile_updated=profile_updated,
+            language=payload.language,
+        )
     else:
         # AgentOrchestrator failed to construct (e.g. unexpected environment issue) —
         # this should not happen in practice since it has no hard dependency on an
@@ -67,4 +97,6 @@ def chat(payload: ChatRequest, db: DBSession = Depends(get_db), agent=Depends(ge
         fertilizer_schedule=result.get("fertilizer_schedule"),
         irrigation_schedule=result.get("irrigation_schedule"),
         pest_risks=result.get("pest_risks"),
+        marketplace_offers=result.get("marketplace_offers"),
+        price_intelligence=result.get("price_intelligence"),
     )

@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session as DBSession
 
 from app.api.deps import get_db
 from app.db.repositories.farm_repo import get_profile, missing_fields
-from app.db.repositories.message_repo import list_messages
+from app.db.repositories.message_repo import get_first_user_message, list_messages
 from app.db.repositories.plan_repo import list_financial_projections, list_season_plans
 from app.db.repositories.session_repo import get_session, list_sessions, list_sessions_for_farmer
 from app.db.repositories.tool_log_repo import list_tool_calls
@@ -36,6 +36,7 @@ class SessionSummary(BaseModel):
     session_id: str
     created_at: str
     updated_at: str
+    preview: str | None = None
 
 
 class HistoryResponse(BaseModel):
@@ -48,6 +49,14 @@ class HistoryResponse(BaseModel):
     financial_projections: list[dict]
 
 
+def _preview(db: DBSession, session_id: str) -> str | None:
+    first = get_first_user_message(db, session_id)
+    if first is None:
+        return None
+    text = first.content.strip()
+    return text if len(text) <= 60 else text[:57] + "..."
+
+
 @router.get("/sessions", response_model=list[SessionSummary])
 def get_sessions(farmer_key: str | None = None, db: DBSession = Depends(get_db)) -> list[SessionSummary]:
     rows = list_sessions_for_farmer(db, farmer_key) if farmer_key else list_sessions(db)
@@ -56,6 +65,7 @@ def get_sessions(farmer_key: str | None = None, db: DBSession = Depends(get_db))
             session_id=s.id,
             created_at=s.created_at.isoformat(),
             updated_at=s.updated_at.isoformat(),
+            preview=_preview(db, s.id),
         )
         for s in rows
     ]

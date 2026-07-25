@@ -1,5 +1,6 @@
 import SummaryStatRow from './SummaryStatRow.jsx'
 import CostBreakdownTable from './CostBreakdownTable.jsx'
+import DataSourcesCard from './DataSourcesCard.jsx'
 import EmptyState from '../../components/ui/EmptyState.jsx'
 import { useAppState } from '../../context/useAppState.js'
 import { formatDate } from '../../lib/formatters.js'
@@ -28,6 +29,7 @@ export default function FinancialDashboard() {
       {financials.breakEvenDate && (
         <p className="text-xs text-stone-400">Projected break-even date: {formatDate(financials.breakEvenDate)}</p>
       )}
+      <DataSourcesCard financials={financials} />
     </div>
   )
 }

@@ -84,6 +84,48 @@ class LLMClient:
             logger.exception("LLM JSON completion failed; caller should fall back")
             return None
 
+    def classify_image_json(
+        self,
+        system_prompt: str,
+        user_prompt: str,
+        image_base64: str,
+        temperature: float = 0.2,
+        max_tokens: int = 500,
+    ) -> dict | None:
+        """Tier 2 plant disease detection: sends an image to a vision-capable
+        OpenAI model (gpt-4o-mini and later support image inputs) alongside a
+        text prompt, constrained to return JSON. There is no offline/no-key
+        fallback for this one — unlike every other tool in this app, real
+        image classification genuinely requires a vision model; callers must
+        surface that limitation honestly rather than fake a result."""
+        if not self._client:
+            return None
+        try:
+            response = self._client.chat.completions.create(
+                model=self.model,
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {
+                        "role": "user",
+                        "content": [
+                            {"type": "text", "text": user_prompt},
+                            {
+                                "type": "image_url",
+                                "image_url": {"url": f"data:image/jpeg;base64,{image_base64}"},
+                            },
+                        ],
+                    },
+                ],
+                temperature=temperature,
+                max_tokens=max_tokens,
+                response_format={"type": "json_object"},
+            )
+            content = response.choices[0].message.content
+            return json.loads(content) if content else None
+        except Exception:
+            logger.exception("LLM image classification failed")
+            return None
+
     def call_with_tools(
         self,
         system_prompt: str,

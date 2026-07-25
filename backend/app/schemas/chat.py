@@ -7,7 +7,9 @@ from app.schemas.tool_io import (
     FertilizerScheduleOutput,
     FinanceOutput,
     IrrigationScheduleOutput,
+    MarketplaceOutput,
     PestRiskOutput,
+    PriceIntelligenceOutput,
     WeatherOutput,
 )
 
@@ -28,6 +30,7 @@ class ChatRequest(BaseModel):
     # farmer provides so a brand-new session can recognize them and carry
     # their farm profile forward without asking again. Optional — omit it
     # and the agent behaves exactly as a single-session chat.
+    language: str = "en"  # Tier 2: "en" | "bn" — reply language
 
     @field_validator("message")
     @classmethod
@@ -90,3 +93,5 @@ class ChatResponse(BaseModel):
     fertilizer_schedule: FertilizerScheduleOutput | None = None
     irrigation_schedule: IrrigationScheduleOutput | None = None
     pest_risks: PestRiskOutput | None = None
+    marketplace_offers: MarketplaceOutput | None = None  # Tier 2
+    price_intelligence: PriceIntelligenceOutput | None = None  # Tier 2

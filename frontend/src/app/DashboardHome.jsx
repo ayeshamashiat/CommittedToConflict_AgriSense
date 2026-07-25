@@ -3,6 +3,7 @@ import Badge from '../components/ui/Badge.jsx'
 import Button from '../components/ui/Button.jsx'
 import WeatherSnapshotCard from '../features/weather/WeatherSnapshotCard.jsx'
 import { useAppState } from '../context/useAppState.js'
+import { useTranslation } from '../context/useTranslation.js'
 import { LEVEL_BADGE_VARIANT } from '../lib/constants.js'
 import { formatCurrencyBDT, formatPercent } from '../lib/formatters.js'
 
@@ -22,6 +23,7 @@ function DashboardCard({ title, onClick, children }) {
 
 export default function DashboardHome() {
   const { state, dispatch } = useAppState()
+  const { t } = useTranslation()
   const { farmerProfile, recommendations, financials, alerts, weather } = state
   const goTo = (section) => dispatch({ type: 'SET_SECTION', payload: section })
 
@@ -46,7 +48,7 @@ export default function DashboardHome() {
 
   return (
     <div className="flex flex-col gap-4 p-4 sm:p-6">
-      <h1 className="text-2xl font-semibold text-leaf-800">Dashboard</h1>
+      <h1 className="text-2xl font-semibold text-leaf-800">{t('nav_dashboard')}</h1>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
         <DashboardCard title="Farmer Profile" onClick={() => goTo('profile')}>

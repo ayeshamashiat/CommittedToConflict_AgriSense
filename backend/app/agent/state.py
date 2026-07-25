@@ -3,7 +3,7 @@
 from dataclasses import dataclass, field
 from typing import Literal
 
-AgentAction = Literal["ask_clarifying_question", "recommend"]
+AgentAction = Literal["ask_clarifying_question", "recommend", "chat_reply"]
 
 
 @dataclass

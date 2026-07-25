@@ -1,12 +1,13 @@
-import Badge from '../components/ui/Badge.jsx'
 import { useAppState } from '../context/useAppState.js'
+import { useTranslation } from '../context/useTranslation.js'
 import { NAV_SECTIONS } from '../lib/constants.js'
-
-const USE_MOCK = import.meta.env.VITE_USE_MOCK !== 'false'
 
 export default function MainHeader() {
   const { state, dispatch } = useAppState()
+  const { t, language } = useTranslation()
   const activeSection = NAV_SECTIONS.find((section) => section.id === state.ui.activeSection)
+
+  const toggleLanguage = () => dispatch({ type: 'SET_LANGUAGE', payload: language === 'en' ? 'bn' : 'en' })
 
   return (
     <header className="flex h-14 shrink-0 items-center gap-3 border-b border-earth-100 bg-wheat-50 px-3 sm:px-4">
@@ -22,10 +23,17 @@ export default function MainHeader() {
       </button>
 
       <h1 className="flex-1 truncate text-base font-semibold text-stone-800">
-        {activeSection ? `${activeSection.icon} ${activeSection.label}` : ''}
+        {activeSection ? `${activeSection.icon} ${t(`nav_${activeSection.id}`)}` : ''}
       </h1>
 
-      {USE_MOCK && <Badge variant="warning">Mock Data Mode</Badge>}
+      <button
+        type="button"
+        onClick={toggleLanguage}
+        className="shrink-0 rounded-lg border border-earth-100 px-2.5 py-1 text-xs font-medium text-stone-600 hover:bg-wheat-200"
+        title="Switch language / ভাষা পরিবর্তন করুন"
+      >
+        {language === 'en' ? 'বাং' : 'EN'}
+      </button>
     </header>
   )
 }
