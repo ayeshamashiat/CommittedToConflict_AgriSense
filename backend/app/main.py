@@ -12,6 +12,7 @@ from app.api.routes import (
     retrieve,
     sessions,
     simulate,
+    transcribe,
     weather,
 )
 from app.config import get_settings
@@ -62,3 +63,4 @@ app.include_router(marketplace.router)
 app.include_router(payments.router)
 app.include_router(price_intelligence.router)
 app.include_router(disease_detection.router)
+app.include_router(transcribe.router)

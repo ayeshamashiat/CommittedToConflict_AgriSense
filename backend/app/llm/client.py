@@ -5,6 +5,7 @@ through the `openai` package directly, so the rest of the agent stays
 provider-agnostic and testable without a live API key.
 """
 
+import io
 import json
 import logging
 
@@ -124,6 +125,31 @@ class LLMClient:
             return json.loads(content) if content else None
         except Exception:
             logger.exception("LLM image classification failed")
+            return None
+
+    def transcribe_audio(
+        self,
+        audio_bytes: bytes,
+        filename: str = "audio.webm",
+        language: str | None = None,
+    ) -> str | None:
+        """Tier 2 voice input: speech-to-text via OpenAI's Whisper model.
+        `language` should be an ISO-639-1 code (e.g. "en", "bn") — passing it
+        is optional (Whisper auto-detects) but pins the guess to the app's
+        current UI language, which resolves ambiguity on short recordings."""
+        if not self._client:
+            return None
+        try:
+            buffer = io.BytesIO(audio_bytes)
+            buffer.name = filename
+            response = self._client.audio.transcriptions.create(
+                model="whisper-1",
+                file=buffer,
+                language=language,
+            )
+            return response.text
+        except Exception:
+            logger.exception("Whisper transcription failed")
             return None
 
     def call_with_tools(
