@@ -71,7 +71,14 @@ def _known_candidates_prompt(crop_hint: str | None) -> str:
         + "\n".join(lines)
         + "\nIf what you see in the photo genuinely matches one of these, use that exact name. If it "
         "clearly doesn't match any of them, say so and name what you actually observe instead — do not "
-        "force a match that isn't a good fit."
+        "force a match that isn't a good fit.\n\n"
+        "Important: some of these distinguishing symptoms (e.g. fuzzy sporulation on the leaf "
+        "underside) are only visible from a specific angle. If the photo only shows the top of the "
+        "leaf, you cannot confirm or rule out a symptom that only appears on the underside — say so "
+        "explicitly in symptoms_observed (e.g. 'underside not visible in this photo'), and do not "
+        "report 'high' confidence for a diagnosis that depends on a symptom you couldn't actually "
+        "check. A photo showing only one side of a leaf is evidence *for* whatever it does show, not "
+        "evidence *against* a condition whose tell-tale sign is on the side you can't see."
     )
 
 
