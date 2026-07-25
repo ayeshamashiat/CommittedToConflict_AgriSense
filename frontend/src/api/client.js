@@ -431,6 +431,23 @@ export async function detectDisease({ imageFile, cropHint, sessionId }) {
   }
 }
 
+// ---- Voice input transcription (Tier 2, OpenAI Whisper) -------------------
+
+export async function transcribeAudio(audioBlob, language) {
+  const formData = new FormData()
+  formData.append('audio', audioBlob, 'recording.webm')
+  if (language) formData.append('language', language)
+
+  const res = await fetch(`${BASE_URL}/transcribe`, { method: 'POST', body: formData })
+  if (!res.ok) {
+    const body = await res.json().catch(() => null)
+    const detail = body?.detail
+    throw new Error(`Request to /transcribe failed: ${detail ?? `${res.status} ${res.statusText}`}`)
+  }
+  const data = await res.json()
+  return data.text
+}
+
 // ---- Agent trace ----
 
 const TOOL_LABELS = {
